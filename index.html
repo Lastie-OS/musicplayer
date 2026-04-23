@@ -151,57 +151,103 @@
         </center>
     </div>
     <script>
-        let musicPlayer, musicFiles, i = 0, interval, playbackRate, volume = 1, shuffle = false;
-        const progress = document.querySelector("progress"), songIndexLabel = document.querySelector("#songIndex"), songDuration = document.querySelector(".duration"), songCurrentTime = document.querySelector(".currentTime"), playButton = document.querySelector("#play"), albumCover = document.querySelector(".cover"), mutag = window.mutag;
+        let i = 0, volume = 1, playbackRate = 1, shuffle = false;
+        let audioCtx, sourceNode, audioBuffer;
 
+        const progress = document.querySelector("progress");
+        const songIndexLabel = document.querySelector("#songIndex");
+        const songDuration = document.querySelector(".duration");
+        const songCurrentTime = document.querySelector(".currentTime");
+        const playButton = document.querySelector("#play");
+        const uploadInput = document.getElementById("upload");
 
-        function playMusic() {
-            progress.value = 0;
-            musicFiles = document.getElementById("upload").files;
-            musicPlayer = document.getElementById("music");
-            musicPlayer.src = URL.createObjectURL(musicFiles[i]);
-            musicPlayer.play();
-            musicPlayer.playbackRate = playbackRate;
-            musicPlayer.volume = volume;
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        async function playMusic() {
+            initAudio();
+            const musicFiles = uploadInput.files;
+            if (!musicFiles.length) return;
+
+            if (audioCtx.state === 'suspended') await audioCtx.resume();
+
+            if (sourceNode) {
+                sourceNode.stop();
+                sourceNode.disconnect();
+            }
+
+            const file = musicFiles[i];
+            const arrayBuffer = await file.arrayBuffer();
+    
+            audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+    
+            startPlayback();
+        }
+
+        function startPlayback() {
+            sourceNode = audioCtx.createBufferSource();
+            sourceNode.buffer = audioBuffer;
+    
+            const gainNode = audioCtx.createGain();
+            gainNode.gain.value = volume;
+    
+            sourceNode.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+    
+            sourceNode.playbackRate.value = playbackRate;
+            sourceNode.loop = true; 
+    
+            sourceNode.start(0);
+            playButton.innerHTML = '||';
+    
+            updateUI();
         }
 
         function musicScroll(nextOrBack) {
-            musicPlayer.pause();
-            if (nextOrBack === "next" && !shuffle) {
-                i++;
-                if (i > musicFiles.length) {
-                    i = 0;
-                }
-            } else if (nextOrBack === "back" && !shuffle) {
-                i--;
-                if (i < 0) {
-                    i = musicFiles.length - 1;
-                }
+            const musicFiles = uploadInput.files;
+            if (!musicFiles.length) return;
+
+            if (shuffle) {
+                i = Math.floor(Math.random() * musicFiles.length);
             } else {
-                i = Math.ceil(Math.random() * musicFiles.length - 1);
-                if (i < 0) {
-                    i = 0;
+                if (nextOrBack === "next") {
+                    i = (i + 1) % musicFiles.length;
+                } else {
+                    i = (i - 1 + musicFiles.length) % musicFiles.length;
                 }
             }
+            playMusic();
         }
 
         function togglePlay() {
-            if (musicPlayer.paused === true) {
-                playButton.innerHTML = '||';
-                musicPlayer.play();
-            } else {
+            if (!audioCtx) return playMusic();
+            
+            if (audioCtx.state === 'running') {
+                audioCtx.suspend();
                 playButton.innerText = '>';
-                musicPlayer.pause();
+            } else {
+                audioCtx.resume();
+                playButton.innerHTML = '||';
             }
         }
+        
+        function updateUI() {
+            if (audioCtx && audioCtx.state === 'running' && audioBuffer) {
+                const currTime = audioCtx.currentTime % audioBuffer.duration;
+                const totalTime = audioBuffer.duration;
 
-        setInterval(() => {
-            progress.value = musicPlayer.currentTime;
-            progress.max = Math.floor(musicPlayer.duration);
-            songCurrentTime.innerText = Math.floor(musicPlayer.currentTime);
-            songDuration.innerText = Math.floor(musicPlayer.duration);
-            songIndexLabel.innerText = "this.songIndex == " + i;
-        }, 10);
+                progress.value = currTime;
+                progress.max = totalTime;
+        
+                songCurrentTime.innerText = Math.floor(currTime);
+                songDuration.innerText = Math.floor(totalTime);
+                songIndexLabel.innerText = `this.songIndex == ${i}`;
+            }
+            requestAnimationFrame(updateUI);
+        }
     </script>
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js/vcd15cbe7772f49c399c6a5babf22c1241717689176015" integrity="sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==" data-cf-beacon='{"version":"2024.11.0","token":"0f9bb0e42d2f41f5a812c484fc4c1eca","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
 </body>
