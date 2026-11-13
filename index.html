@@ -172,6 +172,13 @@
             from { background-position: 0 0; }
             to { background-position: 0 0.375rem; }
         }
+
+        @supports (-moz-appearance: none) {
+            #homepage {
+                transform: none;  
+                filter: blur(.3px);
+            }
+        }
     </style>
 </head>
 <body>
