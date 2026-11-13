@@ -176,7 +176,7 @@
 <body>
 
     <div id="homepage">
-        <h1 class="title">AUDIO_LINK.v3</h1>
+        <h1 class="title">AUDIO_PLAYBACK</h1>
         
         <img draggable="false" class="cover" id="albumArt" src="">
         
@@ -205,10 +205,11 @@
 
             <div class="divider"></div>
 
-            <input type="number" placeholder="SEEK_TO_SECONDS" onchange="seekAudio(this.value)">
+            <input type="number" placeholder="CURRENT_TIME" onchange="seekAudio(this.value)">
             <input type="number" step="0.1" placeholder="PLAYBACK_RATE" onchange="updateRate(this.value)">
             
             <p style="margin-top:15px; font-size: 0.7rem; letter-spacing: 2px;">OUTPUT_VOLUME</p>
+            
             <input class="slider" type="range" value="1" min="0" max="1" step=".01" oninput="updateVolume(this.value)">
             
             <input type="file" id="upload" multiple accept="audio/*" onchange="i=0; playMusic();">
